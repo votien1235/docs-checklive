@@ -59,8 +59,8 @@ Báo giá đã gửi khách: `docs/BAO GIA - BOT TELEGRAM CHECKLIVE.xlsx`.
 ### Cấu trúc module (`src/`)
 - `prisma/` - PrismaService/Module (global).
 - `common/` - decorators (`roles`, `public`, `current-user`), `guards/roles.guard`, `filters/all-exceptions.filter`.
-- `auth/` - login/register/logout/me, JWT strategy + guard.
-- `users/` - CRUD user, approve/ban/role.
+- `auth/` - login/logout/me, JWT strategy + guard (chỉ ADMIN / SUB_ADMIN; không có register web).
+- `users/` - CRUD quản trị viên (ban/role); không quản lý tài khoản USER khách.
 - `plans/` - CRUD gói dịch vụ.
 - `customers/` - CRUD khách.
 - `licenses/` - phát/thu hồi key + logic `activate(key, chatId)`.
@@ -68,8 +68,8 @@ Báo giá đã gửi khách: `docs/BAO GIA - BOT TELEGRAM CHECKLIVE.xlsx`.
 - `bot/` - `telegram.service` (gửi tin), `telegram.controller` (webhook), `bot-update.service` (xử lý lệnh), `monitored-uids.service` (quản lý UID + quota), `fb-checker.service` (engine check FB), `checker.scheduler` (cron mỗi phút).
 
 ### Model dữ liệu (Prisma, `prisma/schema.prisma`)
-- `User` (role ADMIN/SUB_ADMIN/USER, canUseApp, isSuperAdmin, parentUser hierarchy).
-- `SiteSettings` (registrationEnabled), `ActivityLog`.
+- `User` (role ADMIN/SUB_ADMIN dùng cho login web; enum `USER` / `canUseApp` / `SiteSettings.registrationEnabled` còn trong schema như legacy, không dùng cho sản phẩm).
+- `SiteSettings`, `ActivityLog`.
 - `Customer`, `Plan` (maxUids, minCheckIntervalSec, maxGroups, durationDays, priceVnd).
 - `License` (key, status ACTIVE/USED/REVOKED/EXPIRED, planId, activatedChatId, expiresAt).
 - `BotGroup` (telegramChatId unique, status PENDING/APPROVED/BLOCKED, planId, customerId, checkIntervalSec override, expiresAt).
@@ -117,7 +117,7 @@ Admin seed mặc định: `admin@checklive.local` / `admin12345`.
 
 ### Trang
 - `src/app/login` - đăng nhập.
-- `src/app/(admin)/` (có role guard trong `layout.tsx`): `dashboard`, `groups` (duyệt/khóa + gán gói), `licenses` (phát/thu hồi key), `plans` (tạo gói + quota), `users` (duyệt/ban).
+- `src/app/(admin)/` (có role guard trong `layout.tsx`): `dashboard`, `groups` (duyệt/khóa + gán gói), `licenses` (phát/thu hồi key), `plans` (tạo gói + quota), `admins` (CRUD ADMIN/SUB_ADMIN).
 - `src/hooks/use-auth.ts`, `src/hooks/use-resources.ts`.
 - `src/lib/api.ts` (axios instance), `src/components/layout/sidebar.tsx`, `src/components/providers.tsx`.
 

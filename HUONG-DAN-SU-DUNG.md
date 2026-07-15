@@ -25,7 +25,7 @@ Tài khoản admin mặc định (đổi trong `.env` / sau khi seed): `admin@ch
 ### A1. Đăng nhập
 1. Mở http://localhost:3000 -> tự chuyển tới trang đăng nhập.
 2. Nhập email + mật khẩu admin -> vào **Tổng quan (Dashboard)**.
-3. Menu trái gồm: Tổng quan, Nhóm bot, License, Gói dịch vụ, **Quản lý người dùng**, **Quản lý quản trị viên** (mục cuối chỉ hiện với tài khoản ADMIN).
+3. Menu trái gồm: Tổng quan, Nhóm bot, License, Gói dịch vụ, **Quản lý quản trị viên** (mục cuối chỉ hiện với tài khoản ADMIN).
 
 ### A2. Bước 1 - Tạo Gói dịch vụ (Plans)
 Gói định nghĩa **quota** áp cho nhóm dùng bot.
@@ -52,27 +52,24 @@ Có **2 cách** (dùng cách nào cũng được):
 1. Vào **License** -> **Tạo license** -> chọn **gói** + **số lượng** -> **Tạo**.
 2. Copy key (dạng `CL-XXXX-XXXX-XXXX-XXXX`) gửi khách.
 3. Khách gõ `/activate KEY` trong nhóm (xem B2) -> nhóm tự thành APPROVED theo gói.
-4. Thu hồi: bấm **Thu hồi** (REVOKED) -> key hết hiệu lực (nhóm đã kích hoạt vẫn chạy tới khi hết hạn/khóa).
+4. Thu hồi: bấm **Thu hồi** (REVOKED) trên key còn `ACTIVE` -> key hết hiệu lực (chưa kích hoạt được nữa).
+5. Hoàn tác: bấm **Hoàn tác** trên key đã `USED` -> key về `ACTIVE` để phát lại; nhóm Telegram đã gắn key sẽ bị **Khóa (BLOCKED)**.
 
 ### A4. Quản lý Nhóm bot
 Cột hiển thị: tên nhóm, Chat ID, trạng thái (PENDING/APPROVED/BLOCKED), gói, số UID, hạn dùng.
 - **Duyệt**: cấp phép + gán gói.
 - **Khóa**: chặn nhóm.
 
-### A5. Quản lý người dùng
-Trang **Quản lý người dùng** chỉ hiển thị tài khoản role `USER` (khách đăng ký / dùng hệ thống).
-- **Duyệt**: cấp quyền dùng app (`canUseApp = true`).
-- **Ban / Bỏ ban**: khóa hoặc mở khóa tài khoản (tài khoản bị ban không đăng nhập được).
-
-### A5b. Quản lý quản trị viên (chỉ ADMIN)
+### A5. Quản lý quản trị viên (chỉ ADMIN)
 Trang **Quản lý quản trị viên** chỉ ADMIN thấy; chứa tài khoản `ADMIN` / `SUB_ADMIN`.
+Không có đăng ký web cho khách — khách dùng bot qua Telegram (duyệt nhóm / license).
 - **Tạo quản trị viên**: email, mật khẩu, tên, chọn role `ADMIN` hoặc `SUB_ADMIN`.
 - **Đổi role**: chuyển giữa ADMIN và SUB_ADMIN.
 - **Ban / Bỏ ban**: khóa tài khoản quản trị (không ban chính mình; không thao tác trên OWNER / Super Admin).
 - **Xóa**: xóa tài khoản quản trị (không xóa chính mình / Super Admin).
 
 ### A6. Dashboard
-Xem nhanh: tổng số nhóm (chờ duyệt / đã duyệt), số license (còn hiệu lực), số gói, số **người dùng (USER)**, và (nếu là ADMIN) số **quản trị viên**.
+Xem nhanh: tổng số nhóm (chờ duyệt / đã duyệt), số license (còn hiệu lực), số gói, và (nếu là ADMIN) số **quản trị viên**.
 
 ---
 
