@@ -25,7 +25,7 @@ Tài khoản admin mặc định (đổi trong `.env` / sau khi seed): `admin@ch
 ### A1. Đăng nhập
 1. Mở http://localhost:3000 -> tự chuyển tới trang đăng nhập.
 2. Nhập email + mật khẩu admin -> vào **Tổng quan (Dashboard)**.
-3. Menu trái gồm: Tổng quan, Nhóm bot, License, Gói dịch vụ, Người dùng.
+3. Menu trái gồm: Tổng quan, Nhóm bot, License, Gói dịch vụ, **Quản lý người dùng**, **Quản lý quản trị viên** (mục cuối chỉ hiện với tài khoản ADMIN).
 
 ### A2. Bước 1 - Tạo Gói dịch vụ (Plans)
 Gói định nghĩa **quota** áp cho nhóm dùng bot.
@@ -59,13 +59,20 @@ Cột hiển thị: tên nhóm, Chat ID, trạng thái (PENDING/APPROVED/BLOCKED
 - **Duyệt**: cấp phép + gán gói.
 - **Khóa**: chặn nhóm.
 
-### A5. Quản lý Người dùng (tài khoản web)
-- **Duyệt**: cho phép tài khoản USER dùng hệ thống (`canUseApp`).
-- **Ban / Bỏ ban**: khóa/mở tài khoản.
-- (Tạo admin phụ / đổi role: qua API `/users`.)
+### A5. Quản lý người dùng
+Trang **Quản lý người dùng** chỉ hiển thị tài khoản role `USER` (khách đăng ký / dùng hệ thống).
+- **Duyệt**: cấp quyền dùng app (`canUseApp = true`).
+- **Ban / Bỏ ban**: khóa hoặc mở khóa tài khoản (tài khoản bị ban không đăng nhập được).
+
+### A5b. Quản lý quản trị viên (chỉ ADMIN)
+Trang **Quản lý quản trị viên** chỉ ADMIN thấy; chứa tài khoản `ADMIN` / `SUB_ADMIN`.
+- **Tạo quản trị viên**: email, mật khẩu, tên, chọn role `ADMIN` hoặc `SUB_ADMIN`.
+- **Đổi role**: chuyển giữa ADMIN và SUB_ADMIN.
+- **Ban / Bỏ ban**: khóa tài khoản quản trị (không ban chính mình; không thao tác trên OWNER / Super Admin).
+- **Xóa**: xóa tài khoản quản trị (không xóa chính mình / Super Admin).
 
 ### A6. Dashboard
-Xem nhanh: tổng số nhóm (bao nhiêu chờ duyệt / đã duyệt), số license (còn hiệu lực), số gói, số người dùng.
+Xem nhanh: tổng số nhóm (chờ duyệt / đã duyệt), số license (còn hiệu lực), số gói, số **người dùng (USER)**, và (nếu là ADMIN) số **quản trị viên**.
 
 ---
 
@@ -131,14 +138,91 @@ flowchart TD
 
 ---
 
-## D. CẤU HÌNH TELEGRAM WEBHOOK (dành cho người vận hành kỹ thuật)
+## D. TẠO BOT TELEGRAM & KẾT NỐI HỆ THỐNG (người vận hành kỹ thuật)
 
-Sau khi backend chạy công khai (có domain HTTPS), đăng ký webhook:
+### D1. Tạo bot bằng BotFather
+1. Mở Telegram, tìm **@BotFather** (tích xanh) -> bấm **Start**.
+2. Gõ `/newbot`.
+3. Nhập **tên hiển thị** của bot (vd: `Checklive Bot`).
+4. Nhập **username** kết thúc bằng `bot` (vd: `checklive_uid_bot`) - phải là duy nhất.
+5. BotFather trả về **TOKEN** dạng:
+   ```
+   123456789:AAExxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   ```
+   -> Lưu lại token này (không chia sẻ công khai).
+
+### D2. Cấu hình bot để hoạt động trong nhóm
+Vẫn trong BotFather:
+1. `/setprivacy` -> chọn bot -> **Disable**.
+   (Tắt privacy để bot đọc được tin nhắn/lệnh trong nhóm. Nếu để Enable, bot chỉ thấy lệnh có `@tenbot`.)
+2. `/setjoingroups` -> chọn bot -> **Enable** (cho phép thêm bot vào nhóm).
+3. (Tùy chọn) `/setcommands` -> chọn bot -> dán danh sách lệnh để hiện gợi ý:
+   ```
+   activate - Kich hoat license: /activate KEY
+   add - Them 1 UID: /add UID|Ten
+   addlist - Them nhieu UID
+   delete - Xoa UID: /delete UID
+   checkall - Kiem tra toan bo UID
+   help - Xem huong dan
+   ```
+
+### D3. Nạp token vào hệ thống (backend)
+Mở file `.env` của `checklive-be` và điền:
+```
+TELEGRAM_BOT_TOKEN=123456789:AAExxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TELEGRAM_WEBHOOK_SECRET=mot-chuoi-bi-mat-tu-dat
+```
+- `TELEGRAM_WEBHOOK_SECRET`: tự đặt 1 chuỗi ngẫu nhiên, dùng để bảo vệ đường dẫn webhook.
+- Khởi động lại backend sau khi sửa `.env`.
+
+### D4. Kết nối bot với hệ thống (đăng ký Webhook)
+Bot gửi mọi cập nhật (lệnh, sự kiện được add vào nhóm) về backend qua **webhook**. Backend nhận tại:
 ```
 https://<domain>/api/v1/telegram/webhook/<TELEGRAM_WEBHOOK_SECRET>
 ```
-- `TELEGRAM_BOT_TOKEN` và `TELEGRAM_WEBHOOK_SECRET` cấu hình trong `.env` backend.
-- Local test có thể dùng ngrok để tạo HTTPS tạm.
+
+**Bước đăng ký webhook với Telegram** (chạy 1 lần, thay TOKEN / domain / secret):
+```bash
+curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://<domain>/api/v1/telegram/webhook/<TELEGRAM_WEBHOOK_SECRET>",
+    "allowed_updates": ["message", "my_chat_member"]
+  }'
+```
+Trả về `{"ok":true,...}` là thành công.
+
+Kiểm tra trạng thái webhook:
+```bash
+curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"
+```
+
+Gỡ webhook (nếu cần):
+```bash
+curl "https://api.telegram.org/bot<TOKEN>/deleteWebhook"
+```
+
+### D5. Chạy thử ở local (chưa có domain)
+Backend chạy `localhost:3300` không nhận webhook từ Telegram được (cần HTTPS công khai). Dùng **ngrok**:
+```bash
+ngrok http 3300
+```
+Lấy URL HTTPS ngrok trả về (vd `https://abc123.ngrok-free.app`) rồi đăng ký webhook như D4 với domain đó:
+```
+https://abc123.ngrok-free.app/api/v1/telegram/webhook/<TELEGRAM_WEBHOOK_SECRET>
+```
+
+### D6. Thêm bot vào nhóm & kiểm tra
+1. Trong nhóm Telegram -> Thêm thành viên -> tìm **username bot** -> thêm vào.
+2. Nên đặt bot làm **quản trị viên nhóm** (giúp nhận đầy đủ sự kiện, gửi tin ổn định).
+3. Bot sẽ nhắn "nhóm đang chờ duyệt" -> nhóm xuất hiện ở web Admin (mục Nhóm bot, trạng thái PENDING).
+4. Duyệt nhóm hoặc `/activate KEY`, rồi gõ `/checkall` để kiểm tra kết nối.
+
+> Tóm tắt luồng kết nối: BotFather (tạo bot + token) -> điền token vào `.env` backend -> đăng ký webhook trỏ về backend -> thêm bot vào nhóm -> cấp phép -> dùng.
+
+### D7. Cấu hình sau khi deploy Railway
+- Đặt `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` trong biến môi trường của service backend trên Railway.
+- Lấy domain công khai Railway cấp cho backend, rồi chạy lại lệnh `setWebhook` (D4) với domain đó.
 
 ---
 
