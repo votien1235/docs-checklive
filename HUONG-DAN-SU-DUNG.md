@@ -9,13 +9,14 @@ Cập nhật lần cuối: 2026-07-16
 
 ## 0. Các thành phần & địa chỉ
 
-| Thành phần | Địa chỉ (local) | Vai trò |
+| Thành phần | Địa chỉ | Vai trò |
 |---|---|---|
-| Web (frontend) | http://localhost:3000 | Trang đăng nhập chung |
-| Web Admin | http://localhost:3000/dashboard | Quản trị hệ thống (ADMIN / SUB_ADMIN) |
-| Portal khách | http://localhost:3000/my-groups | Khách quản lý UID trên web (USER) |
-| API Backend | http://localhost:3300/api/v1 | Xử lý logic, DB, bot |
-| API Docs (Swagger) | http://localhost:3300/api/v1/docs | Thử API |
+| Web (frontend) | https://checklive-wayne.online | Trang đăng nhập chung |
+| Web Admin | https://checklive-wayne.online/dashboard | Quản trị hệ thống (ADMIN / SUB_ADMIN) |
+| Portal khách | https://checklive-wayne.online/my-groups | Khách quản lý UID trên web (USER) |
+| Đổi mật khẩu | https://checklive-wayne.online/change-password | Mọi tài khoản đã đăng nhập |
+| API Backend | https://api.checklive-wayne.online/api/v1 | Xử lý logic, DB, bot |
+| API Docs (Swagger) | https://api.checklive-wayne.online/api/v1/docs | Thử API |
 | Telegram Bot | trong nhóm Telegram | Nhận lệnh, check UID |
 
 Tài khoản admin mặc định (đổi trong `.env` / sau khi seed): `admin@checklive.local` / `admin12345`.
@@ -26,16 +27,27 @@ Tài khoản admin mặc định (đổi trong `.env` / sau khi seed): `admin@ch
 |---|---|---|
 | ADMIN / SUB_ADMIN | Web quản trị | `/dashboard` |
 | USER (`canUseApp = true`) | Portal khách | `/my-groups` |
-| USER (`canUseApp = false`) | Không đăng nhập được | — |
+| USER (`canUseApp = false`) | Không đăng nhập được | Thông báo: *"Tài khoản đã bị khóa. Vui lòng liên hệ admin."* |
+
+**Liên kết khách ↔ nhóm ↔ portal:**
+
+```text
+Customer (Khách hàng)  ←── ownerUserId ──  User portal (email đăng nhập)
+       ↑
+       └── customerId ──  BotGroup (Nhóm Telegram)
+       └── customerId ──  License (khi /activate → gán nhóm)
+```
+
+Khách chỉ thấy nhóm trên portal khi **BotGroup.customerId** trùng **Customer** của tài khoản portal đó.
 
 ---
 
 ## A. HƯỚNG DẪN CHO ADMIN (Web quản trị)
 
 ### A1. Đăng nhập
-1. Mở http://localhost:3000 -> trang đăng nhập.
+1. Mở https://checklive-wayne.online -> trang đăng nhập.
 2. Nhập email + mật khẩu admin -> vào **Tổng quan (Dashboard)**.
-3. Menu trái gồm: Tổng quan, Nhóm bot, License, Gói dịch vụ, **Khách hàng** (chỉ ADMIN), **Quản lý quản trị viên** (chỉ ADMIN).
+3. Menu trái gồm: Tổng quan, Nhóm bot, License, Gói dịch vụ, **Khách hàng** (chỉ ADMIN), **Quản lý quản trị viên** (chỉ ADMIN). Cuối menu: **Đổi mật khẩu** (`/change-password`).
 
 ### A2. Bước 0 - Tạo khách hàng & tài khoản Portal (mới)
 Trước khi khách dùng web quản lý UID, Admin cần tạo hồ sơ khách và cấp tài khoản đăng nhập.
@@ -46,7 +58,7 @@ Trước khi khách dùng web quản lý UID, Admin cần tạo hồ sơ khách 
    - Email đăng nhập (vd: `khach1@example.com`)
    - Mật khẩu (tối thiểu 6 ký tự)
    - Tên hiển thị (tùy chọn)
-4. Gửi email + mật khẩu cho khách. Khách đăng nhập tại http://localhost:3000 -> tự vào **Nhóm của tôi**.
+4. Gửi email + mật khẩu cho khách. Khách đăng nhập tại https://checklive-wayne.online -> tự vào **Nhóm của tôi**.
 5. **Cấp lại mật khẩu** (khi khách quên): ở dòng khách đã có tài khoản portal -> bấm **Cấp lại mật khẩu** -> nhập mật khẩu mới + xác nhận -> **Lưu**. Gửi mật khẩu mới cho khách.
 
 **Lưu ý:**
@@ -71,22 +83,23 @@ Có **2 cách** (dùng cách nào cũng được):
 
 **Cách 1 - Duyệt nhóm trực tiếp trên web:**
 1. Người dùng thêm bot vào nhóm Telegram trước (xem phần C1). Nhóm sẽ xuất hiện ở **Nhóm bot** với trạng thái **PENDING**.
-2. Vào **Nhóm bot** -> bấm **Duyệt** ở nhóm đó -> chọn **gói dịch vụ** -> **Xác nhận duyệt**.
+2. Vào **Nhóm bot** -> bấm **Duyệt** ở nhóm đó -> chọn **gói dịch vụ** + **khách hàng** (khuyến nghị nếu dùng portal) -> **Xác nhận duyệt**.
 3. Nhóm chuyển sang **APPROVED** + có hạn dùng. Bot bắt đầu hoạt động.
 4. Muốn ngừng: bấm **Khóa** (BLOCKED) -> bot ngừng check nhóm đó.
-5. **Gán khách** (nếu dùng portal): khi duyệt hoặc cập nhật nhóm, gán đúng **Customer** đã tạo ở A2 để khách thấy nhóm trên web.
+5. Nhóm đã duyệt nhưng chưa gán khách: bấm **Gán khách** -> chọn khách -> **Lưu**. Chọn **Không gán khách** để gỡ liên kết.
 
 **Cách 2 - Phát License key cho khách tự kích hoạt:**
-1. Vào **License** -> **Tạo license** -> chọn **gói** + **số lượng** -> **Tạo**.
+1. Vào **License** -> **Tạo license** -> chọn **gói** + **khách hàng** (khuyến nghị) + **số lượng** -> **Tạo**.
 2. Copy key (dạng `CL-XXXX-XXXX-XXXX-XXXX`) gửi khách.
-3. Khách gõ `/activate KEY` trong nhóm (xem B2) -> nhóm tự thành APPROVED theo gói.
+3. Khách gõ `/activate KEY` trong nhóm (xem C2) -> nhóm tự thành APPROVED theo gói.
 4. Thu hồi: bấm **Thu hồi** (REVOKED) trên key còn `ACTIVE` -> key hết hiệu lực (chưa kích hoạt được nữa).
 5. Hoàn tác: bấm **Hoàn tác** trên key đã `USED` -> key về `ACTIVE` để phát lại; nhóm Telegram đã gắn key sẽ bị **Khóa (BLOCKED)**.
 
 ### A5. Quản lý Nhóm bot
-Cột hiển thị: tên nhóm, Chat ID, trạng thái (PENDING/APPROVED/BLOCKED), gói, số UID, hạn dùng.
+Cột hiển thị: tên nhóm, Chat ID, trạng thái (PENDING/APPROVED/BLOCKED), **khách hàng**, gói, số UID, hạn dùng.
 - **Chi tiết**: mở trang quản lý UID của nhóm (thêm/sửa/xóa UID, check ngay) — xem A6.
-- **Duyệt**: cấp phép + gán gói.
+- **Duyệt**: cấp phép + gán gói + (tuỳ chọn) gán khách hàng.
+- **Gán khách**: gán hoặc gỡ khách hàng cho nhóm đã duyệt.
 - **Gia hạn**: cập nhật ngày hết hạn.
 - **Khóa**: chặn nhóm.
 
@@ -113,7 +126,20 @@ Từ **Nhóm bot** -> bấm **Chi tiết** hoặc vào `/groups/<id>`.
 
 UID thêm/sửa/xóa trên web **đồng bộ** với bot: lệnh `/checkall` trong Telegram sẽ phản ánh cùng danh sách.
 
-### A7. Quản lý quản trị viên (chỉ ADMIN)
+### A7. Quản lý License
+Trang **License** dùng để phát key cho khách tự kích hoạt trong nhóm Telegram.
+
+| Thao tác | Mô tả |
+|---|---|
+| **Tạo license** | Chọn gói + **khách hàng** (khuyến nghị) + số lượng → **Tạo** |
+| **Thu hồi** | Key `ACTIVE` → `REVOKED` (không kích hoạt được nữa) |
+| **Hoàn tác** | Key `USED` → `ACTIVE`; nhóm đã gắn key bị **Khóa** |
+
+Cột hiển thị: key, gói, **khách hàng**, trạng thái, ngày tạo, ngày dùng, nhóm đã kích hoạt.
+
+Khi tạo license kèm khách hàng, lệnh `/activate KEY` sẽ tự **gán nhóm** cho đúng khách → khách thấy nhóm trên portal.
+
+### A8. Quản lý quản trị viên (chỉ ADMIN)
 Trang **Quản lý quản trị viên** chỉ ADMIN thấy; chứa tài khoản `ADMIN` / `SUB_ADMIN`.
 Tài khoản **khách hàng (USER)** được tạo ở mục **Khách hàng** (A2), không tạo tại trang này.
 - **Tạo quản trị viên**: email, mật khẩu, tên, chọn role `ADMIN` hoặc `SUB_ADMIN`.
@@ -121,8 +147,15 @@ Tài khoản **khách hàng (USER)** được tạo ở mục **Khách hàng** (
 - **Ban / Bỏ ban**: khóa tài khoản quản trị (không ban chính mình; không thao tác trên OWNER / Super Admin).
 - **Xóa**: xóa tài khoản quản trị (không xóa chính mình / Super Admin).
 
-### A8. Dashboard
+### A9. Dashboard
 Xem nhanh: tổng số nhóm (chờ duyệt / đã duyệt), số license (còn hiệu lực), số gói, và (nếu là ADMIN) số **quản trị viên**.
+
+### A10. Đổi mật khẩu (Admin / Sub-admin)
+1. Menu trái (cuối sidebar) → **Đổi mật khẩu** hoặc mở `/change-password`.
+2. Nhập **mật khẩu hiện tại** + **mật khẩu mới** + xác nhận → **Cập nhật mật khẩu**.
+3. Mật khẩu mới tối thiểu 6 ký tự, phải khác mật khẩu hiện tại.
+
+> Admin **cấp lại mật khẩu** cho khách portal (khi khách quên) tại **Khách hàng** (A2 bước 5) — khác với tự đổi mật khẩu ở trên.
 
 ---
 
@@ -131,10 +164,11 @@ Xem nhanh: tổng số nhóm (chờ duyệt / đã duyệt), số license (còn 
 Khách dùng web để xem nhóm Telegram của mình và quản lý UID — **bổ sung** cho lệnh bot, không thay thế bot.
 
 ### B1. Đăng nhập
-1. Mở http://localhost:3000.
+1. Mở https://checklive-wayne.online.
 2. Nhập **email + mật khẩu** do Admin cấp (mục A2).
 3. Sau đăng nhập thành công -> vào **Nhóm của tôi** (`/my-groups`).
 4. Nếu không đăng nhập được: liên hệ Admin kiểm tra tài khoản đã tạo chưa, quyền portal có **Đang bật** không.
+5. **Đổi mật khẩu**: menu trái -> **Đổi mật khẩu** -> nhập mật khẩu hiện tại + mật khẩu mới.
 
 ### B2. Xem danh sách nhóm
 Trang **Nhóm của tôi** hiển thị các nhóm Telegram đã gán cho khách hàng của bạn:
@@ -243,7 +277,7 @@ Ví dụ `/addlist`:
 3. Admin duyệt nhóm + gán khách (A4) HOẶC khách `/activate KEY` (C2).
 4. Khách quản lý UID qua **Portal web** (B3) và/hoặc lệnh bot (C3).
 5. Bot tự check + báo DIE trong nhóm (C4). Portal: bấm **Check ngay** hoặc xem bảng trạng thái.
-6. Admin theo dõi Dashboard, quản lý UID tại **Chi tiết nhóm** (A6), khóa nhóm/thu hồi key khi cần.
+6. Admin theo dõi Dashboard (A9), quản lý UID tại **Chi tiết nhóm** (A6), khóa nhóm/thu hồi key khi cần.
 
 ```mermaid
 flowchart TD
@@ -343,9 +377,15 @@ https://abc123.ngrok-free.app/api/v1/telegram/webhook/<TELEGRAM_WEBHOOK_SECRET>
 
 > Tóm tắt luồng kết nối: BotFather (tạo bot + token) -> điền token vào `.env` backend -> đăng ký webhook trỏ về backend -> thêm bot vào nhóm -> cấp phép -> dùng.
 
-### E7. Cấu hình sau khi deploy Railway
-- Đặt `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` trong biến môi trường của service backend trên Railway.
-- Lấy domain công khai Railway cấp cho backend, rồi chạy lại lệnh `setWebhook` (E4) với domain đó.
+### E7. Cấu hình sau khi deploy (production)
+- Đặt `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` trong biến môi trường của service backend.
+- Domain production hiện tại:
+  - Web: `https://checklive-wayne.online`
+  - API: `https://api.checklive-wayne.online`
+- Đăng ký webhook (E4) với URL:
+  ```
+  https://api.checklive-wayne.online/api/v1/telegram/webhook/<TELEGRAM_WEBHOOK_SECRET>
+  ```
 
 ---
 
@@ -356,11 +396,12 @@ https://abc123.ngrok-free.app/api/v1/telegram/webhook/<TELEGRAM_WEBHOOK_SECRET>
 | Bot không phản hồi lệnh | Nhóm chưa APPROVED / hết hạn | Admin duyệt lại hoặc gia hạn/kích hoạt key mới |
 | "Nhom chua duoc cap phep" | Chưa duyệt/license | Duyệt nhóm hoặc `/activate KEY` |
 | Không thêm được UID | Đã đạt `maxUids` của gói | Nâng gói hoặc xóa bớt UID |
-| Portal: danh sách nhóm trống | Chưa gán Customer cho nhóm / chưa tạo tài khoản portal | Admin: A2 + gán khách khi duyệt nhóm (A4) |
+| Portal: danh sách nhóm trống | Chưa gán khách cho nhóm | **Nhóm bot** -> **Gán khách** hoặc duyệt kèm chọn khách (A4) |
 | Portal: không thêm UID được | Nhóm PENDING / BLOCKED / hết hạn | Admin duyệt hoặc gia hạn; kiểm tra trạng thái trên **Nhóm của tôi** |
 | Khách đăng nhập web bị từ chối | `canUseApp = false` (portal Disabled) | Khách thấy *"Tài khoản đã bị khóa. Vui lòng liên hệ admin."* — Admin bật lại portal ở **Khách hàng** |
-| Khách quên mật khẩu portal | Không có trang tự lấy lại mật khẩu | Admin **Cấp lại mật khẩu** ở **Khách hàng** (A2 bước 5) |
+| Khách quên mật khẩu portal | Không có trang tự lấy lại mật khẩu | Admin **Cấp lại mật khẩu** ở **Khách hàng** (A2 bước 5). Nếu khách còn nhớ mật khẩu cũ: **Đổi mật khẩu** trên portal |
 | Đăng nhập admin lỗi 401 | Sai tài khoản / cookie | Kiểm tra email/mật khẩu, thử lại |
+| Đổi mật khẩu báo sai MK hiện tại | Nhập nhầm mật khẩu cũ | Thử lại; admin dùng **Cấp lại mật khẩu** nếu quên hoàn toàn |
 | Backend lỗi `P1010` | Sai `DATABASE_URL` / chưa tạo DB | Sửa `.env`, tạo DB, chạy `prisma migrate` |
 | Bot không tự check | `SCHEDULER_ENABLED=false` hoặc nhóm hết hạn | Bật scheduler, kiểm tra hạn nhóm |
 | Check FB sai/nhiều UNKNOWN | Bị Facebook chặn IP | Cấu hình `PROXY_LIST` (proxy pool) |
