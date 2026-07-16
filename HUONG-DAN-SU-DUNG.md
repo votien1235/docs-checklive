@@ -1,9 +1,9 @@
 # Hướng dẫn sử dụng - Checklive Bot
 
 > Hướng dẫn vận hành hệ thống bot Telegram check live/die UID Facebook.
-> Gồm 2 phần: (A) dành cho Admin dùng web quản trị, (B) dành cho người dùng bot trong nhóm Telegram.
+> Gồm 3 phần: (A) Admin dùng web quản trị, (B) Khách hàng dùng **Portal web** quản lý UID, (C) Người dùng bot trong nhóm Telegram.
 
-Cập nhật lần cuối: 2026-07-15
+Cập nhật lần cuối: 2026-07-16
 
 ---
 
@@ -11,23 +11,49 @@ Cập nhật lần cuối: 2026-07-15
 
 | Thành phần | Địa chỉ (local) | Vai trò |
 |---|---|---|
-| Web Admin (frontend) | http://localhost:3000 | Trang quản trị |
+| Web (frontend) | http://localhost:3000 | Trang đăng nhập chung |
+| Web Admin | http://localhost:3000/dashboard | Quản trị hệ thống (ADMIN / SUB_ADMIN) |
+| Portal khách | http://localhost:3000/my-groups | Khách quản lý UID trên web (USER) |
 | API Backend | http://localhost:3300/api/v1 | Xử lý logic, DB, bot |
 | API Docs (Swagger) | http://localhost:3300/api/v1/docs | Thử API |
 | Telegram Bot | trong nhóm Telegram | Nhận lệnh, check UID |
 
 Tài khoản admin mặc định (đổi trong `.env` / sau khi seed): `admin@checklive.local` / `admin12345`.
 
+**Phân quyền đăng nhập web:**
+
+| Role | Vào được | Sau đăng nhập chuyển tới |
+|---|---|---|
+| ADMIN / SUB_ADMIN | Web quản trị | `/dashboard` |
+| USER (`canUseApp = true`) | Portal khách | `/my-groups` |
+| USER (`canUseApp = false`) | Không đăng nhập được | — |
+
 ---
 
 ## A. HƯỚNG DẪN CHO ADMIN (Web quản trị)
 
 ### A1. Đăng nhập
-1. Mở http://localhost:3000 -> tự chuyển tới trang đăng nhập.
+1. Mở http://localhost:3000 -> trang đăng nhập.
 2. Nhập email + mật khẩu admin -> vào **Tổng quan (Dashboard)**.
-3. Menu trái gồm: Tổng quan, Nhóm bot, License, Gói dịch vụ, **Quản lý quản trị viên** (mục cuối chỉ hiện với tài khoản ADMIN).
+3. Menu trái gồm: Tổng quan, Nhóm bot, License, Gói dịch vụ, **Khách hàng** (chỉ ADMIN), **Quản lý quản trị viên** (chỉ ADMIN).
 
-### A2. Bước 1 - Tạo Gói dịch vụ (Plans)
+### A2. Bước 0 - Tạo khách hàng & tài khoản Portal (mới)
+Trước khi khách dùng web quản lý UID, Admin cần tạo hồ sơ khách và cấp tài khoản đăng nhập.
+
+1. Vào **Khách hàng** -> **Tạo khách**.
+2. Điền **Tên khách**, (tùy chọn) Telegram username, ghi chú -> **Tạo**.
+3. Ở dòng khách vừa tạo, bấm **Tạo tài khoản web**:
+   - Email đăng nhập (vd: `khach1@example.com`)
+   - Mật khẩu (tối thiểu 6 ký tự)
+   - Tên hiển thị (tùy chọn)
+4. Gửi email + mật khẩu cho khách. Khách đăng nhập tại http://localhost:3000 -> tự vào **Nhóm của tôi**.
+
+**Lưu ý:**
+- Mỗi khách chỉ gắn **một** tài khoản portal.
+- Cột **Trạng thái portal**: `Đang bật` = khách đăng nhập được; `Đã tắt` = Admin tạm khóa quyền web (không ảnh hưởng bot Telegram).
+- Khi duyệt nhóm, nên **gán khách** tương ứng để khách thấy đúng nhóm trên portal (xem A3).
+
+### A3. Bước 1 - Tạo Gói dịch vụ (Plans)
 Gói định nghĩa **quota** áp cho nhóm dùng bot.
 1. Vào **Gói dịch vụ** -> **Tạo gói**.
 2. Điền:
@@ -39,14 +65,15 @@ Gói định nghĩa **quota** áp cho nhóm dùng bot.
    - **Gia (VND)**: để tham khảo.
 3. Lưu. (Seed sẵn 3 gói: Trial / Basic / Pro.)
 
-### A3. Bước 2 - Cấp quyền cho nhóm
+### A4. Bước 2 - Cấp quyền cho nhóm
 Có **2 cách** (dùng cách nào cũng được):
 
 **Cách 1 - Duyệt nhóm trực tiếp trên web:**
-1. Người dùng thêm bot vào nhóm Telegram trước (xem phần B1). Nhóm sẽ xuất hiện ở **Nhóm bot** với trạng thái **PENDING**.
+1. Người dùng thêm bot vào nhóm Telegram trước (xem phần C1). Nhóm sẽ xuất hiện ở **Nhóm bot** với trạng thái **PENDING**.
 2. Vào **Nhóm bot** -> bấm **Duyệt** ở nhóm đó -> chọn **gói dịch vụ** -> **Xác nhận duyệt**.
 3. Nhóm chuyển sang **APPROVED** + có hạn dùng. Bot bắt đầu hoạt động.
 4. Muốn ngừng: bấm **Khóa** (BLOCKED) -> bot ngừng check nhóm đó.
+5. **Gán khách** (nếu dùng portal): khi duyệt hoặc cập nhật nhóm, gán đúng **Customer** đã tạo ở A2 để khách thấy nhóm trên web.
 
 **Cách 2 - Phát License key cho khách tự kích hoạt:**
 1. Vào **License** -> **Tạo license** -> chọn **gói** + **số lượng** -> **Tạo**.
@@ -55,38 +82,133 @@ Có **2 cách** (dùng cách nào cũng được):
 4. Thu hồi: bấm **Thu hồi** (REVOKED) trên key còn `ACTIVE` -> key hết hiệu lực (chưa kích hoạt được nữa).
 5. Hoàn tác: bấm **Hoàn tác** trên key đã `USED` -> key về `ACTIVE` để phát lại; nhóm Telegram đã gắn key sẽ bị **Khóa (BLOCKED)**.
 
-### A4. Quản lý Nhóm bot
+### A5. Quản lý Nhóm bot
 Cột hiển thị: tên nhóm, Chat ID, trạng thái (PENDING/APPROVED/BLOCKED), gói, số UID, hạn dùng.
+- **Chi tiết**: mở trang quản lý UID của nhóm (thêm/sửa/xóa UID, check ngay) — xem A6.
 - **Duyệt**: cấp phép + gán gói.
+- **Gia hạn**: cập nhật ngày hết hạn.
 - **Khóa**: chặn nhóm.
 
-### A5. Quản lý quản trị viên (chỉ ADMIN)
+### A6. Quản lý UID trên web (trang chi tiết nhóm)
+Từ **Nhóm bot** -> bấm **Chi tiết** hoặc vào `/groups/<id>`.
+
+**Thông tin nhóm:** tên, Chat ID, gói, hạn dùng, quota UID (đang dùng / tối đa), chu kỳ check.
+
+**Danh sách UID:**
+| Thao tác | Mô tả |
+|---|---|
+| Tìm kiếm | Lọc theo UID hoặc tên |
+| Lọc trạng thái | ALL / LIVE / DIE / UNKNOWN |
+| **Thêm UID** | Thêm một UID hoặc nhiều dòng `UID\|Tên` |
+| **Sửa** | Đổi tên, ghi chú |
+| **Xóa** | Gỡ UID khỏi danh sách theo dõi |
+| **Check ngay** | Gọi engine check FB và cập nhật trạng thái |
+| Sao chép / Mở Facebook | Icon trên từng dòng UID |
+
+**Điều kiện thêm UID trên web** (giống bot Telegram):
+- Nhóm phải **APPROVED**
+- Chưa **hết hạn**
+- Chưa đạt **maxUids** của gói
+
+UID thêm/sửa/xóa trên web **đồng bộ** với bot: lệnh `/checkall` trong Telegram sẽ phản ánh cùng danh sách.
+
+### A7. Quản lý quản trị viên (chỉ ADMIN)
 Trang **Quản lý quản trị viên** chỉ ADMIN thấy; chứa tài khoản `ADMIN` / `SUB_ADMIN`.
-Không có đăng ký web cho khách — khách dùng bot qua Telegram (duyệt nhóm / license).
+Tài khoản **khách hàng (USER)** được tạo ở mục **Khách hàng** (A2), không tạo tại trang này.
 - **Tạo quản trị viên**: email, mật khẩu, tên, chọn role `ADMIN` hoặc `SUB_ADMIN`.
 - **Đổi role**: chuyển giữa ADMIN và SUB_ADMIN.
 - **Ban / Bỏ ban**: khóa tài khoản quản trị (không ban chính mình; không thao tác trên OWNER / Super Admin).
 - **Xóa**: xóa tài khoản quản trị (không xóa chính mình / Super Admin).
 
-### A6. Dashboard
+### A8. Dashboard
 Xem nhanh: tổng số nhóm (chờ duyệt / đã duyệt), số license (còn hiệu lực), số gói, và (nếu là ADMIN) số **quản trị viên**.
 
 ---
 
-## B. HƯỚNG DẪN CHO NGƯỜI DÙNG BOT (trong nhóm Telegram)
+## B. HƯỚNG DẪN CHO KHÁCH HÀNG (Portal web)
 
-### B1. Thêm bot vào nhóm
+Khách dùng web để xem nhóm Telegram của mình và quản lý UID — **bổ sung** cho lệnh bot, không thay thế bot.
+
+### B1. Đăng nhập
+1. Mở http://localhost:3000.
+2. Nhập **email + mật khẩu** do Admin cấp (mục A2).
+3. Sau đăng nhập thành công -> vào **Nhóm của tôi** (`/my-groups`).
+4. Nếu không đăng nhập được: liên hệ Admin kiểm tra tài khoản đã tạo chưa, quyền portal có **Đang bật** không.
+
+### B2. Xem danh sách nhóm
+Trang **Nhóm của tôi** hiển thị các nhóm Telegram đã gán cho khách hàng của bạn:
+
+| Cột | Ý nghĩa |
+|---|---|
+| Tên nhóm | Tên nhóm trên Telegram |
+| Chat ID | ID nhóm (tham chiếu kỹ thuật) |
+| Trạng thái | PENDING / APPROVED / BLOCKED |
+| Gói | Gói dịch vụ đang áp dụng |
+| UID | Số UID đang theo dõi / tối đa (quota) |
+| Hạn dùng | Ngày hết hạn dịch vụ |
+
+- Dùng **Tìm kiếm** và **Lọc trạng thái** để thu hẹp danh sách.
+- Bấm **Quản lý UID** để vào chi tiết nhóm.
+
+**Lưu ý:** Chỉ thấy nhóm thuộc hồ sơ khách của bạn. Nhóm **PENDING** hiển thị nhưng chưa thêm UID được cho đến khi Admin duyệt.
+
+### B3. Quản lý UID trong nhóm
+Vào **Quản lý UID** -> trang chi tiết nhóm.
+
+**Phần đầu trang:** thông tin gói, hạn dùng, thanh quota UID, chu kỳ check tự động.
+
+**Thao tác:**
+
+| Nút / chức năng | Cách dùng |
+|---|---|
+| **Thêm UID** | Chọn tab *Một UID* (nhập UID + tên) hoặc *Nhiều UID* (mỗi dòng `UID\|Tên`) |
+| **Check ngay** | Kiểm tra live/die toàn bộ UID và cập nhật bảng |
+| **Làm mới** | Tải lại danh sách |
+| **Sửa** (icon bút) | Đổi tên, ghi chú |
+| **Xóa** (icon thùng rác) | Xác nhận rồi gỡ UID |
+| **Sao chép** | Copy UID vào clipboard |
+| **Mở Facebook** | Mở trang profile FB theo UID |
+
+**Trạng thái UID:**
+
+| Badge | Ý nghĩa |
+|---|---|
+| LIVE | UID còn hoạt động (theo heuristic hệ thống) |
+| DIE | UID die / không còn profile thật |
+| UNKNOWN | Chưa check hoặc không xác định được |
+
+**Khi không thêm được UID:**
+- Nhóm chưa **APPROVED** -> chờ Admin duyệt hoặc kích hoạt license.
+- Nhóm **hết hạn** -> liên hệ Admin gia hạn.
+- Đã đủ **quota UID** -> xóa bớt UID hoặc nâng gói.
+
+### B4. Quan hệ Portal web và Bot Telegram
+
+| Việc | Portal web | Bot Telegram |
+|---|---|---|
+| Thêm / xóa UID | Có | Có (`/add`, `/addlist`, `/delete`) |
+| Xem trạng thái ngay | **Check ngay** | `/checkall` |
+| Thông báo UID DIE tự động | Không (chỉ xem trên web) | Có — bot nhắn vào nhóm |
+| Check định kỳ nền | Có (scheduler) | Có (scheduler) |
+
+Khuyến nghị: dùng **portal** khi cần thao tác hàng loạt hoặc xem trên máy tính; dùng **bot** khi cần nhận cảnh báo DIE ngay trong nhóm Telegram.
+
+---
+
+## C. HƯỚNG DẪN CHO NGƯỜI DÙNG BOT (trong nhóm Telegram)
+
+### C1. Thêm bot vào nhóm
 1. Thêm bot (theo username bot của bạn) vào nhóm Telegram.
 2. Bot tự ghi nhận nhóm ở trạng thái **chờ duyệt** và nhắn hướng dẫn.
 3. Nhóm CHƯA hoạt động cho tới khi được Admin duyệt hoặc kích hoạt license.
 
-### B2. Kích hoạt bằng license (nếu có key)
+### C2. Kích hoạt bằng license (nếu có key)
 ```
 /activate CL-XXXX-XXXX-XXXX-XXXX
 ```
 Thành công -> bot báo tên gói + hạn dùng, nhóm bắt đầu hoạt động.
 
-### B3. Các lệnh quản lý UID (chỉ dùng được khi nhóm đã được cấp phép)
+### C3. Các lệnh quản lý UID (chỉ dùng được khi nhóm đã được cấp phép)
 | Lệnh | Ý nghĩa |
 |---|---|
 | `/add UID|Tên` | Thêm 1 UID để theo dõi |
@@ -103,7 +225,9 @@ Ví dụ `/addlist`:
 100000789|Le Van C
 ```
 
-### B4. Cơ chế thông báo
+> Cùng định dạng `UID|Tên` khi thêm hàng loạt trên **Portal web** (mục B3).
+
+### C4. Cơ chế thông báo
 - Bot tự động check theo chu kỳ của gói (vd 1 phút/lần).
 - **Chỉ báo khi có UID chuyển sang DIE**; UID còn sống thì không nhắn (tránh spam).
 - Nội dung báo: `UID - Tên` / `Trạng thái: Die` / `ngày giờ`.
@@ -111,33 +235,34 @@ Ví dụ `/addlist`:
 
 ---
 
-## C. QUY TRÌNH VẬN HÀNH ĐIỂN HÌNH (end-to-end)
+## D. QUY TRÌNH VẬN HÀNH ĐIỂN HÌNH (end-to-end)
 
-1. Admin tạo Gói (A2) -> phát License cho khách (A3 cách 2) HOẶC chờ duyệt nhóm (A3 cách 1).
-2. Khách thêm bot vào nhóm (B1).
-3. Khách `/activate KEY` (B2) hoặc Admin bấm Duyệt (A3).
-4. Khách `/add` / `/addlist` các UID (B3).
-5. Bot tự check + báo DIE (B4). Khách gõ `/checkall` khi muốn xem tức thời.
-6. Admin theo dõi trên Dashboard, khóa nhóm/thu hồi key khi cần.
+1. Admin tạo Gói (A3) -> tạo Khách + tài khoản portal (A2).
+2. Khách thêm bot vào nhóm (C1).
+3. Admin duyệt nhóm + gán khách (A4) HOẶC khách `/activate KEY` (C2).
+4. Khách quản lý UID qua **Portal web** (B3) và/hoặc lệnh bot (C3).
+5. Bot tự check + báo DIE trong nhóm (C4). Portal: bấm **Check ngay** hoặc xem bảng trạng thái.
+6. Admin theo dõi Dashboard, quản lý UID tại **Chi tiết nhóm** (A6), khóa nhóm/thu hồi key khi cần.
 
 ```mermaid
 flowchart TD
-  A["Admin tao Goi + License"] --> B["Khach them bot vao nhom"]
+  A["Admin: Goi + Khach + Portal account"] --> B["Khach them bot vao nhom"]
   B --> C{"Cap phep"}
   C -->|"/activate KEY"| D["Nhom APPROVED"]
-  C -->|"Admin bam Duyet"| D
-  D --> E["Khach /add /addlist UID"]
+  C -->|"Admin duyet + gan khach"| D
+  D --> E["Khach quan ly UID: Web hoac Telegram"]
   E --> F["Bot check dinh ky"]
   F --> G{"Co UID DIE?"}
-  G -->|"Co"| H["Bot bao ve nhom"]
+  G -->|"Co"| H["Bot bao ve nhom Telegram"]
   G -->|"Khong"| F
+  E --> I["Portal: xem / Check ngay"]
 ```
 
 ---
 
-## D. TẠO BOT TELEGRAM & KẾT NỐI HỆ THỐNG (người vận hành kỹ thuật)
+## E. TẠO BOT TELEGRAM & KẾT NỐI HỆ THỐNG (người vận hành kỹ thuật)
 
-### D1. Tạo bot bằng BotFather
+### E1. Tạo bot bằng BotFather
 1. Mở Telegram, tìm **@BotFather** (tích xanh) -> bấm **Start**.
 2. Gõ `/newbot`.
 3. Nhập **tên hiển thị** của bot (vd: `Checklive Bot`).
@@ -148,7 +273,7 @@ flowchart TD
    ```
    -> Lưu lại token này (không chia sẻ công khai).
 
-### D2. Cấu hình bot để hoạt động trong nhóm
+### E2. Cấu hình bot để hoạt động trong nhóm
 Vẫn trong BotFather:
 1. `/setprivacy` -> chọn bot -> **Disable**.
    (Tắt privacy để bot đọc được tin nhắn/lệnh trong nhóm. Nếu để Enable, bot chỉ thấy lệnh có `@tenbot`.)
@@ -163,7 +288,7 @@ Vẫn trong BotFather:
    help - Xem huong dan
    ```
 
-### D3. Nạp token vào hệ thống (backend)
+### E3. Nạp token vào hệ thống (backend)
 Mở file `.env` của `checklive-be` và điền:
 ```
 TELEGRAM_BOT_TOKEN=123456789:AAExxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -172,7 +297,7 @@ TELEGRAM_WEBHOOK_SECRET=mot-chuoi-bi-mat-tu-dat
 - `TELEGRAM_WEBHOOK_SECRET`: tự đặt 1 chuỗi ngẫu nhiên, dùng để bảo vệ đường dẫn webhook.
 - Khởi động lại backend sau khi sửa `.env`.
 
-### D4. Kết nối bot với hệ thống (đăng ký Webhook)
+### E4. Kết nối bot với hệ thống (đăng ký Webhook)
 Bot gửi mọi cập nhật (lệnh, sự kiện được add vào nhóm) về backend qua **webhook**. Backend nhận tại:
 ```
 https://<domain>/api/v1/telegram/webhook/<TELEGRAM_WEBHOOK_SECRET>
@@ -199,17 +324,17 @@ Gỡ webhook (nếu cần):
 curl "https://api.telegram.org/bot<TOKEN>/deleteWebhook"
 ```
 
-### D5. Chạy thử ở local (chưa có domain)
+### E5. Chạy thử ở local (chưa có domain)
 Backend chạy `localhost:3300` không nhận webhook từ Telegram được (cần HTTPS công khai). Dùng **ngrok**:
 ```bash
 ngrok http 3300
 ```
-Lấy URL HTTPS ngrok trả về (vd `https://abc123.ngrok-free.app`) rồi đăng ký webhook như D4 với domain đó:
+Lấy URL HTTPS ngrok trả về (vd `https://abc123.ngrok-free.app`) rồi đăng ký webhook như E4 với domain đó:
 ```
 https://abc123.ngrok-free.app/api/v1/telegram/webhook/<TELEGRAM_WEBHOOK_SECRET>
 ```
 
-### D6. Thêm bot vào nhóm & kiểm tra
+### E6. Thêm bot vào nhóm & kiểm tra
 1. Trong nhóm Telegram -> Thêm thành viên -> tìm **username bot** -> thêm vào.
 2. Nên đặt bot làm **quản trị viên nhóm** (giúp nhận đầy đủ sự kiện, gửi tin ổn định).
 3. Bot sẽ nhắn "nhóm đang chờ duyệt" -> nhóm xuất hiện ở web Admin (mục Nhóm bot, trạng thái PENDING).
@@ -217,27 +342,32 @@ https://abc123.ngrok-free.app/api/v1/telegram/webhook/<TELEGRAM_WEBHOOK_SECRET>
 
 > Tóm tắt luồng kết nối: BotFather (tạo bot + token) -> điền token vào `.env` backend -> đăng ký webhook trỏ về backend -> thêm bot vào nhóm -> cấp phép -> dùng.
 
-### D7. Cấu hình sau khi deploy Railway
+### E7. Cấu hình sau khi deploy Railway
 - Đặt `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` trong biến môi trường của service backend trên Railway.
-- Lấy domain công khai Railway cấp cho backend, rồi chạy lại lệnh `setWebhook` (D4) với domain đó.
+- Lấy domain công khai Railway cấp cho backend, rồi chạy lại lệnh `setWebhook` (E4) với domain đó.
 
 ---
 
-## E. XỬ LÝ SỰ CỐ THƯỜNG GẶP
+## F. XỬ LÝ SỰ CỐ THƯỜNG GẶP
 
 | Hiện tượng | Nguyên nhân | Cách xử lý |
 |---|---|---|
 | Bot không phản hồi lệnh | Nhóm chưa APPROVED / hết hạn | Admin duyệt lại hoặc gia hạn/kích hoạt key mới |
 | "Nhom chua duoc cap phep" | Chưa duyệt/license | Duyệt nhóm hoặc `/activate KEY` |
 | Không thêm được UID | Đã đạt `maxUids` của gói | Nâng gói hoặc xóa bớt UID |
-| Đăng nhập web lỗi 401 | Sai tài khoản / cookie | Kiểm tra email/mật khẩu, thử lại |
+| Portal: danh sách nhóm trống | Chưa gán Customer cho nhóm / chưa tạo tài khoản portal | Admin: A2 + gán khách khi duyệt nhóm (A4) |
+| Portal: không thêm UID được | Nhóm PENDING / BLOCKED / hết hạn | Admin duyệt hoặc gia hạn; kiểm tra trạng thái trên **Nhóm của tôi** |
+| Khách đăng nhập web bị từ chối | `canUseApp = false` hoặc chưa có tài khoản USER | Admin bật portal ở **Khách hàng** hoặc tạo tài khoản web |
+| Đăng nhập admin lỗi 401 | Sai tài khoản / cookie | Kiểm tra email/mật khẩu, thử lại |
 | Backend lỗi `P1010` | Sai `DATABASE_URL` / chưa tạo DB | Sửa `.env`, tạo DB, chạy `prisma migrate` |
 | Bot không tự check | `SCHEDULER_ENABLED=false` hoặc nhóm hết hạn | Bật scheduler, kiểm tra hạn nhóm |
 | Check FB sai/nhiều UNKNOWN | Bị Facebook chặn IP | Cấu hình `PROXY_LIST` (proxy pool) |
 
 ---
 
-## F. Lưu ý quan trọng
+## G. Lưu ý quan trọng
+- Portal web và bot Telegram dùng **chung database** — thay đổi UID ở một nơi có hiệu lực ở nơi kia.
+- Thẻ kèo (Huỷ kèo / Done kèo / Ẩn thông tin) **chưa có** trên web — chỉ quản lý UID và trạng thái live/die.
 - Độ chính xác live/die phụ thuộc Facebook, không đạt 100%.
 - Quy mô lớn (nhiều UID) BẮT BUỘC dùng proxy pool, nếu không sẽ bị FB chặn.
 - Facebook hay thay đổi -> cần bảo trì engine check định kỳ.
