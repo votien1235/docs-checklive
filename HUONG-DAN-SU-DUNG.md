@@ -47,10 +47,11 @@ Trước khi khách dùng web quản lý UID, Admin cần tạo hồ sơ khách 
    - Mật khẩu (tối thiểu 6 ký tự)
    - Tên hiển thị (tùy chọn)
 4. Gửi email + mật khẩu cho khách. Khách đăng nhập tại http://localhost:3000 -> tự vào **Nhóm của tôi**.
+5. **Cấp lại mật khẩu** (khi khách quên): ở dòng khách đã có tài khoản portal -> bấm **Cấp lại mật khẩu** -> nhập mật khẩu mới + xác nhận -> **Lưu**. Gửi mật khẩu mới cho khách.
 
 **Lưu ý:**
 - Mỗi khách chỉ gắn **một** tài khoản portal.
-- Cột **Trạng thái portal**: `Đang bật` = khách đăng nhập được; `Đã tắt` = Admin tạm khóa quyền web (không ảnh hưởng bot Telegram).
+- Cột **Trạng thái portal**: `Đang bật` = khách đăng nhập được; `Đã tắt` = Admin tạm khóa quyền web (không ảnh hưởng bot Telegram). Khách đăng nhập khi bị tắt sẽ thấy: *"Tài khoản đã bị khóa. Vui lòng liên hệ admin."*
 - Khi duyệt nhóm, nên **gán khách** tương ứng để khách thấy đúng nhóm trên portal (xem A3).
 
 ### A3. Bước 1 - Tạo Gói dịch vụ (Plans)
@@ -357,7 +358,8 @@ https://abc123.ngrok-free.app/api/v1/telegram/webhook/<TELEGRAM_WEBHOOK_SECRET>
 | Không thêm được UID | Đã đạt `maxUids` của gói | Nâng gói hoặc xóa bớt UID |
 | Portal: danh sách nhóm trống | Chưa gán Customer cho nhóm / chưa tạo tài khoản portal | Admin: A2 + gán khách khi duyệt nhóm (A4) |
 | Portal: không thêm UID được | Nhóm PENDING / BLOCKED / hết hạn | Admin duyệt hoặc gia hạn; kiểm tra trạng thái trên **Nhóm của tôi** |
-| Khách đăng nhập web bị từ chối | `canUseApp = false` hoặc chưa có tài khoản USER | Admin bật portal ở **Khách hàng** hoặc tạo tài khoản web |
+| Khách đăng nhập web bị từ chối | `canUseApp = false` (portal Disabled) | Khách thấy *"Tài khoản đã bị khóa. Vui lòng liên hệ admin."* — Admin bật lại portal ở **Khách hàng** |
+| Khách quên mật khẩu portal | Không có trang tự lấy lại mật khẩu | Admin **Cấp lại mật khẩu** ở **Khách hàng** (A2 bước 5) |
 | Đăng nhập admin lỗi 401 | Sai tài khoản / cookie | Kiểm tra email/mật khẩu, thử lại |
 | Backend lỗi `P1010` | Sai `DATABASE_URL` / chưa tạo DB | Sửa `.env`, tạo DB, chạy `prisma migrate` |
 | Bot không tự check | `SCHEDULER_ENABLED=false` hoặc nhóm hết hạn | Bật scheduler, kiểm tra hạn nhóm |
